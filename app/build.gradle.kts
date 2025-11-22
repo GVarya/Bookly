@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.common.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -60,6 +61,17 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx.v260)
 
     implementation(project(":data"))
     implementation(project(":domain"))

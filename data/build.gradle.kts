@@ -37,9 +37,24 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.firebase.auth.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx.v260)
+
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
 
     implementation(project(":domain"))
 }
