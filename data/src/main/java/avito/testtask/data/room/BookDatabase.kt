@@ -16,20 +16,28 @@ abstract class BookDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun readingProgressDao(): ReadingProgressDao
 
-    companion object {
-        @Volatile
-        private var INSTANCE: BookDatabase? = null
+//    companion object {
+//        @Volatile
+//        private var INSTANCE: BookDatabase? = null
+//
+//        fun getInstance(context: Context): BookDatabase {
+//            return INSTANCE ?: synchronized(this) {
+//                val instance = Room.databaseBuilder(
+//                    context.applicationContext,
+//                    BookDatabase::class.java,
+//                    "book_database"
+//                ).build()
+//                INSTANCE = instance
+//                instance
+//            }
+//        }
+//    }
+}
 
-        fun getInstance(context: Context): BookDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    BookDatabase::class.java,
-                    "book_database"
-                ).build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
+fun createBookDatabase(context: Context): BookDatabase {
+    return Room.databaseBuilder(
+        context.applicationContext,
+        BookDatabase::class.java,
+        "book_database"
+    ).build()
 }

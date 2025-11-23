@@ -8,12 +8,15 @@ import avito.testtask.bookly.di.viewModelModule
 import com.google.firebase.FirebaseApp
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
+import org.koin.core.context.startKoin
 
 class BooklyApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        GlobalContext.startKoin {
+        FirebaseApp.initializeApp(this)
+
+        startKoin {
             androidContext(this@BooklyApp)
             modules(
                 appModule,
@@ -22,6 +25,5 @@ class BooklyApp : Application() {
                 viewModelModule
             )
         }
-        FirebaseApp.initializeApp(this)
     }
 }

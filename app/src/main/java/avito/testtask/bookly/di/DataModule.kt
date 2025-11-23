@@ -1,12 +1,10 @@
 package avito.testtask.bookly.di
 
-import android.content.Context
 import avito.testtask.data.repos_implementations.AuthRepositoryImpl
 import avito.testtask.data.repos_implementations.BookRepositoryImpl
 import avito.testtask.data.repos_implementations.UserRepositoryImpl
-import avito.testtask.data.room.BookDao
 import avito.testtask.data.room.BookDatabase
-import avito.testtask.data.room.ReadingProgressDao
+import avito.testtask.data.room.createBookDatabase
 import avito.testtask.domain.repos.AuthRepository
 import avito.testtask.domain.repos.BookReository
 import avito.testtask.domain.repos.UserRepository
@@ -22,9 +20,23 @@ val dataModule = module {
     single { Firebase.firestore }
     single { Firebase.storage }
 
-    single { provideBookDatabase(get()) }
-    single { provideBookDao(get()) }
-    single { provideReadingProgressDao(get()) }
+//    single { provideBookDatabase(get()) }
+//    single { provideBookDao(get()) }
+//    single { provideReadingProgressDao(get()) }
+//
+    single { createBookDatabase(get()) }
+    single { get<BookDatabase>().bookDao() }
+    single { get<BookDatabase>().readingProgressDao() }
+
+//    single<BookDatabase> {
+//        Room.databaseBuilder(
+//            get<Context>(),
+//            BookDatabase::class.java,
+//            "book_database"
+//        ).build()
+//    }
+//    single<BookDao> { get<BookDatabase>().bookDao() }
+//    single<ReadingProgressDao> { get<BookDatabase>().readingProgressDao() }
 
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<BookReository> {
@@ -45,14 +57,14 @@ val dataModule = module {
     }
 }
 
-private fun provideBookDatabase(context: Context): BookDatabase {
-    return BookDatabase.getInstance(context)
-}
-
-private fun provideBookDao(database: BookDatabase): BookDao {
-    return database.bookDao()
-}
-
-private fun provideReadingProgressDao(database: BookDatabase): ReadingProgressDao {
-    return database.readingProgressDao()
-}
+//private fun provideBookDatabase(context: Context): BookDatabase {
+//    return BookDatabase.getInstance(context)
+//}
+//
+//private fun provideBookDao(database: BookDatabase): BookDao {
+//    return database.bookDao()
+//}
+//
+//private fun provideReadingProgressDao(database: BookDatabase): ReadingProgressDao {
+//    return database.readingProgressDao()
+//}
