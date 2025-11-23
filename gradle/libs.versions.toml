@@ -1,9 +1,12 @@
 [versions]
 agp = "8.13.0"
+awsAndroidSdkCore = "2.73.0"
 awsAndroidSdkS3 = "2.81.1"
 awsAndroidSdkS3Version = "2.73.0"
 coilCompose = "2.7.0"
+epublib = "3.1"
 firebaseBom = "32.7.0"
+jsoup = "1.21.2"
 koinAndroid = "4.1.1"
 koinAndroidxCompose = "4.1.1"
 kotlin = "2.0.21"
@@ -16,10 +19,12 @@ lifecycleRuntimeKtx = "2.9.3"
 activityCompose = "1.10.1"
 composeBom = "2024.09.00"
 materialIconsExtended = "1.7.8"
+pdfboxAndroid = "2.0.27.0"
 roomKtxVersion = "2.8.4"
 roomRuntime = "2.8.4"
 runtime = "1.9.4"
 activityKtx = "1.11.0"
+securityCrypto = "1.1.0-alpha06"
 ui = "1.9.4"
 navigationCompose = "2.9.6"
 jetbrainsKotlinJvm = "2.0.21"
@@ -28,6 +33,7 @@ material = "1.10.0"
 roomKtx = "2.8.4"
 firebaseAuthKtx = "24.0.1"
 firebaseCommonKtx = "22.0.1"
+zip4j = "2.11.5"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
@@ -35,14 +41,18 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomKtxVersion" }
 androidx-room-ktx-v260 = { module = "androidx.room:room-ktx", version.ref = "roomKtxVersion" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "awsAndroidSdkS3" }
+aws-android-sdk-core-v2730 = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "awsAndroidSdkCore" }
 aws-android-sdk-s3 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "awsAndroidSdkS3" }
 aws-android-sdk-s3-v2730 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "awsAndroidSdkS3Version" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+epublib = { module = "com.positiondev.epublib:epublib", version.ref = "epublib" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -68,6 +78,8 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuthKtx" }
 firebase-common-ktx = { group = "com.google.firebase", name = "firebase-common", version.ref = "firebaseCommonKtx" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
+zip4j = { module = "net.lingala.zip4j:zip4j", version.ref = "zip4j" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

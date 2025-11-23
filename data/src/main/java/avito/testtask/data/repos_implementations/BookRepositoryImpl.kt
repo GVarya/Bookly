@@ -1,6 +1,7 @@
 package avito.testtask.data.repos_implementations
 
 import android.content.Context
+
 import android.os.Environment
 import android.util.Log
 import androidx.compose.animation.EnterTransition.Companion.None
@@ -27,8 +28,15 @@ import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility
 import com.amazonaws.services.s3.AmazonS3Client
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.FileInputStream
+import java.io.IOException
 import java.io.InputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import kotlin.coroutines.resume
 
 class BookRepositoryImpl(
@@ -42,7 +50,7 @@ class BookRepositoryImpl(
         if (!secretManager.hasSecrets()) {
             secretManager.saveSecrets(
                 "YCAJEzUZXA-othjXJFOunGoB2",
-                "YCM3aSjGhvonSIBF5oDRBHMPeE-dGIf9PJX9rKMa",
+                ${{ secrets.API_SECRET_KEY }}
                 "bookly-bucket"
             )
         }
@@ -95,7 +103,7 @@ class BookRepositoryImpl(
         return try {
             val downloadsDir = ContextCompat.getExternalFilesDirs(context, Environment.DIRECTORY_DOWNLOADS).first()
             val fileExtension = when (book.bookFormat) {
-                BookFormat.TXT -> "txt"
+                BookFormat.TXT -> "plain"
                 BookFormat.EPUB -> "epub"
                 BookFormat.PDF -> "pdf"
             }
@@ -267,11 +275,12 @@ class BookRepositoryImpl(
             if (!file.exists()) {
                 return OperationResult.Error("Local book file not found")
             }
+
             val content = when (book.bookFormat) {
                 BookFormat.TXT -> file.readText()
-                BookFormat.PDF, BookFormat.EPUB -> {
-                    localPath
-                }
+                BookFormat.PDF -> extractTextFromPdf(file)
+                BookFormat.EPUB -> ""
+//                BookFormat.EPUB -> extractTextFromEpub(file)
             }
 
             OperationResult.Success(content)
@@ -301,4 +310,131 @@ class BookRepositoryImpl(
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Failed to get reading progress")
         }    }
+    fun extractTextFromPdf(pdfFile: File): String {
+        PDFBoxResourceLoader.init(context)
+        return try {
+            PDDocument.load(pdfFile).use { document ->
+                val stripper = PDFTextStripper()
+                stripper.sortByPosition = true
+                stripper.setShouldSeparateByBeads(false)
+                stripper.lineSeparator = "\n"
+
+                val text = stripper.getText(document)
+                cleanExtractedText(text)
+            }
+        } catch (e: IOException) {
+            throw RuntimeException("Ошибка чтения PDF файла: ${e.message}", e)
+        } catch (e: Exception) {
+            throw RuntimeException("Ошибка обработки PDF: ${e.message}", e)
+        }
+    }
+
+    private fun cleanExtractedText(text: String): String {
+        return text
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
+            .trim()
+    }
+
+//    fun extractTextFromEpub(epubFile: File): String {
+//        return try {
+//            val epubReader = EpubReader()
+//            val book: Book = epubReader.readEpub(FileInputStream(epubFile))
+//
+//            val textContent = StringBuilder()
+//            var chapterCount = 0
+//
+//
+//            if (isTextContent(book)) {
+//                chapterCount++
+//                val chapterText = extractTextFromResource(book)
+//                if (chapterText.isNotBlank()) {
+//                    textContent.append("Глава $chapterCount\n\n")
+//                    textContent.append(chapterText)
+//                    textContent.append("\n\n")
+//                }
+//            }
+//
+//
+//            if (textContent.isEmpty()) {
+//                extractTextFromEpubAlternative(epubFile)
+//            } else {
+//                cleanExtractedTextEpub(textContent.toString())
+//            }
+//        } catch (e: Exception) {
+//            throw RuntimeException("Ошибка чтения EPUB файла: ${e.message}", e)
+//        }
+//    }
+//
+//    private fun isTextContent(resource: Resource): Boolean {
+//        val mediaType = resource.mediaType.name
+//        return mediaType.contains("html") ||
+//                mediaType.contains("xhtml") ||
+//                mediaType.contains("application/xhtml+xml")
+//    }
+//
+//    private fun extractTextFromResource(resource: Resource): String {
+//        return try {
+//            val content = String(resource.data, Charsets.UTF_8)
+//            val doc = Jsoup.parse(content)
+//
+//            doc.select("script, style, nav, header, footer").remove()
+//            val body = doc.body()
+//            if (body != null) {
+//                body.text()
+//            } else {
+//                doc.text()
+//            }
+//        } catch (e: Exception) {
+//            ""
+//        }
+//    }
+
+//    private fun extractTextFromEpubAlternative(epubFile: File): String {
+//        return try {
+//            val zipFile = ZipFile(epubFile)
+//            val textContent = StringBuilder()
+//
+//            zipFile.entries().iterator().forEach { entry ->
+//                if (isHtmlEntry(entry)) {
+//                    try {
+//                        zipFile.getInputStream(entry).use { inputStream ->
+//                            val content = inputStream.readBytes().toString(Charsets.UTF_8)
+////                            val doc = Jsoup.parse(content)
+//                            doc.select("script, style").remove()
+//                            val text = doc.body()?.text() ?: doc.text()
+//                            if (text.isNotBlank()) {
+//                                textContent.append(text)
+//                                textContent.append("\n\n")
+//                            }
+//                        }
+//                    } catch (e: Exception) {
+//                    }
+//                }
+//            }
+//
+//            zipFile.close()
+//            cleanExtractedTextEpub(textContent.toString())
+//        } catch (e: Exception) {
+//            throw RuntimeException("Альтернативный метод чтения EPUB не сработал: ${e.message}")
+//        }
+//    }
+
+    private fun isHtmlEntry(entry: ZipEntry): Boolean {
+        val name = entry.name.toLowerCase()
+        return !name.contains("mimetype") &&
+                !name.contains("toc.ncx") &&
+                !name.startsWith("meta-inf") &&
+                (name.endsWith(".html") ||
+                        name.endsWith(".xhtml") ||
+                        name.endsWith(".htm"))
+    }
+
+    private fun cleanExtractedTextEpub(text: String): String {
+        return text
+            .replace(Regex("\\s+"), " ")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
+            .trim()
+    }
 }

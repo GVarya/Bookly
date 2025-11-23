@@ -64,9 +64,14 @@ dependencies {
     implementation(libs.aws.android.sdk.s3)
     implementation(libs.aws.android.sdk.core)
 
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("com.amazonaws:aws-android-sdk-s3:2.73.0")
-    implementation("com.amazonaws:aws-android-sdk-core:2.73.0")
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.aws.android.sdk.s3.v2730)
+    implementation(libs.aws.android.sdk.core.v2730)
+
+    implementation(libs.pdfbox.android)
+//    implementation(libs.epublib)
+//    implementation(libs.jsoup)
+//    implementation(libs.zip4j)
 
     implementation(project(":domain"))
 }

@@ -1,6 +1,5 @@
 package avito.testtask.bookly.ui.screens
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -21,12 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import avito.testtask.bookly.viewmodels.AuthViewModel
-import avito.testtask.domain.models.OperationResult
-import avito.testtask.domain.models.User
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import org.koin.androidx.compose.koinViewModel

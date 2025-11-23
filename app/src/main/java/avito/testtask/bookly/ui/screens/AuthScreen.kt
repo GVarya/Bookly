@@ -33,7 +33,6 @@ fun AuthScreen(
     val authState by authViewModel.authState.collectAsState()
     val isLoading by authViewModel.isLoading.collectAsState()
 
-    // Навигация при успешной аутентификации
     LaunchedEffect(authState) {
         if (authState is avito.testtask.domain.models.AuthState.Authenticated) {
             navController.navigate("main") {
@@ -42,7 +41,6 @@ fun AuthScreen(
         }
     }
 
-    // Очистка ошибки при переключении режима
     LaunchedEffect(isLoginMode) {
         authViewModel.clearError()
     }
@@ -67,7 +65,6 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Логотип
             Icon(
                 imageVector = Icons.Default.Book,
                 contentDescription = "Логотип",
@@ -77,7 +74,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Поле имени (только для регистрации)
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name,
@@ -98,7 +94,6 @@ fun AuthScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Поле email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -118,7 +113,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Поле пароля
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -139,7 +133,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Подтверждение пароля (только для регистрации)
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = confirmPassword,
@@ -161,7 +154,6 @@ fun AuthScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Отображение ошибки
             if (authState is avito.testtask.domain.models.AuthState.Error) {
                 Text(
                     text = (authState as avito.testtask.domain.models.AuthState.Error).message,
@@ -172,7 +164,6 @@ fun AuthScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Кнопка входа/регистрации
             Button(
                 onClick = {
                     when {
@@ -187,7 +178,6 @@ fun AuthScreen(
                                 if (password == confirmPassword) {
                                     authViewModel.register(name, email, password)
                                 } else {
-                                    // Можно показать ошибку несовпадения паролей
                                 }
                             }
                         }
@@ -213,11 +203,9 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Переключатель между входом и регистрацией
             TextButton(
                 onClick = {
                     isLoginMode = !isLoginMode
-                    // Очищаем поля при переключении
                     if (isLoginMode) {
                         name = ""
                         confirmPassword = ""

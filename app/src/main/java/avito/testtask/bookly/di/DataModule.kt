@@ -21,33 +21,17 @@ val dataModule = module {
     single { Firebase.firestore }
     single { Firebase.storage }
 
-//    single { provideBookDatabase(get()) }
-//    single { provideBookDao(get()) }
-//    single { provideReadingProgressDao(get()) }
-//
-//    single { createBookDatabase(get()) }
     single { createBookDatabase(androidContext()) }
     single { get<BookDatabase>().bookDao() }
     single { get<BookDatabase>().readingProgressDao() }
 
-//    single<BookDatabase> {
-//        Room.databaseBuilder(
-//            get<Context>(),
-//            BookDatabase::class.java,
-//            "book_database"
-//        ).build()
-//    }
-//    single<BookDao> { get<BookDatabase>().bookDao() }
-//    single<ReadingProgressDao> { get<BookDatabase>().readingProgressDao() }
+
 
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<BookReository> {
         BookRepositoryImpl(
-//            firestore = get(),
-//            storage = get(),
             bookDao = get(),
             readingProgressDao = get(),
-//            context = get()
             context = androidContext()
 
         )
@@ -61,14 +45,3 @@ val dataModule = module {
     }
 }
 
-//private fun provideBookDatabase(context: Context): BookDatabase {
-//    return BookDatabase.getInstance(context)
-//}
-//
-//private fun provideBookDao(database: BookDatabase): BookDao {
-//    return database.bookDao()
-//}
-//
-//private fun provideReadingProgressDao(database: BookDatabase): ReadingProgressDao {
-//    return database.readingProgressDao()
-//}
