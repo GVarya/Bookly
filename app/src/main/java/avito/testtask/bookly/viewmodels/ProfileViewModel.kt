@@ -1,6 +1,7 @@
 package avito.testtask.bookly.viewmodels
 
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import avito.testtask.domain.models.OperationResult
@@ -27,6 +28,9 @@ class ProfileViewModel(
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
+
+    private val _selectedImageUri = MutableStateFlow<Uri?>(null)
+    val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
 
     init {
         loadUser()
@@ -60,8 +64,9 @@ class ProfileViewModel(
     fun updateAvatar(imageUri: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            when (val result = updateAvatarImageUsecase.execute(imageUri)) {
+            when (val result = updateAvatarImageUsecase.execute(imageUri.toString())) {
                 is OperationResult.Success -> {
+                    _selectedImageUri.value = null
                     loadUser()
                 }
                 is OperationResult.Error -> {
@@ -73,11 +78,19 @@ class ProfileViewModel(
         }
     }
 
+    fun setSelectedImageUri(uri: Uri?) {
+        _selectedImageUri.value = uri
+    }
+
     fun setEditing(editing: Boolean) {
         _isEditing.value = editing
+        if (!editing) {
+            _selectedImageUri.value = null
+        }
     }
 
     fun clearState() {
         _userState.value = null
+        _selectedImageUri.value = null
     }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "255721896790",
+    "project_id": "bookly-75bac",
+    "storage_bucket": "bookly-75bac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:255721896790:android:29fcc2a78a029bf6bf74f7",
+        "android_client_info": {
+          "package_name": "avito.testtask.bookly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQZqcjOKtb5dxYAoJdV9_K-cCxWh5gnz4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

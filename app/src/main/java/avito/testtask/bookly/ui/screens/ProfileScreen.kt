@@ -1,5 +1,9 @@
 package avito.testtask.bookly.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import avito.testtask.bookly.viewmodels.ProfileViewModel
@@ -14,9 +18,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import avito.testtask.bookly.viewmodels.AuthViewModel
+import avito.testtask.domain.models.OperationResult
+import avito.testtask.domain.models.User
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +41,17 @@ fun ProfileScreen(
     val userState by profileViewModel.userState.collectAsState()
     val isLoading by profileViewModel.isLoading.collectAsState()
     val isEditing by profileViewModel.isEditing.collectAsState()
+    val selectedImageUri by profileViewModel.selectedImageUri.collectAsState()
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                profileViewModel.setSelectedImageUri(it)
+                profileViewModel.updateAvatar(it.toString())
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -58,12 +81,16 @@ fun ProfileScreen(
                         user = user,
                         isEditing = isEditing,
                         isLoading = isLoading,
+                        selectedImageUri = selectedImageUri,
                         onEditClick = { profileViewModel.setEditing(true) },
                         onSaveClick = { updatedUser ->
                             profileViewModel.updateUser(updatedUser)
                         },
-                        onAvatarClick = { imageUri ->
-                            profileViewModel.updateAvatar(imageUri)
+                        onAvatarClick = {
+                            galleryLauncher.launch("image/*")
+                        },
+                        onCancelClick = {
+                            profileViewModel.setEditing(false)
                         },
                         onLogoutClick = {
                             profileViewModel.clearState()
@@ -93,8 +120,7 @@ fun ProfileScreen(
                     }
                 }
 
-                else -> {
-                }
+                else -> {}
             }
         }
     }
@@ -105,14 +131,28 @@ fun ProfileContent(
     user: avito.testtask.domain.models.User,
     isEditing: Boolean,
     isLoading: Boolean,
+    selectedImageUri: android.net.Uri?,
     onEditClick: () -> Unit,
     onSaveClick: (avito.testtask.domain.models.User) -> Unit,
-    onAvatarClick: (String) -> Unit,
+    onAvatarClick: () -> Unit,
+    onCancelClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     var editedName by remember { mutableStateOf(user.name) }
     var editedEmail by remember { mutableStateOf(user.email) }
     var editedPhone by remember { mutableStateOf(user.phoneNumber ?: "") }
+
+    LaunchedEffect(user) {
+        editedName = user.name
+        editedEmail = user.email
+        editedPhone = user.phoneNumber ?: ""
+    }
+
+    val avatarImageToShow = when {
+        selectedImageUri != null -> selectedImageUri.toString()
+        user.avatarImageUrl != null -> user.avatarImageUrl
+        else -> null
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -121,29 +161,72 @@ fun ProfileContent(
         Box(
             modifier = Modifier
                 .size(120.dp)
+                .clip(CircleShape)
                 .clickable(
                     enabled = isEditing && !isLoading,
-                    onClick = { /* TODO: Открыть выбор изображения */ }
-                )
+                    onClick = onAvatarClick
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            if (user.avatarImageUrl != null) {
-                // TODO: Загрузка изображения
+            if (avatarImageToShow != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(avatarImageToShow)
+                            .build()
+                    ),
+                    contentDescription = "Аватар",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
                 Box(
                     modifier = Modifier
                         .size(120.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Аватар",
+                        modifier = Modifier.size(60.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+
+            if (isEditing) {
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
                 )
-            } else {
                 Icon(
-                    Icons.Default.Person,
-                    contentDescription = "Аватар",
-                    modifier = Modifier.size(60.dp),
+                    Icons.Default.CameraAlt,
+                    contentDescription = "Изменить аватар",
+                    modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (isEditing) {
+            Text(
+                text = "Нажмите на аватар для изменения",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -207,6 +290,8 @@ fun ProfileContent(
                         modifier = Modifier.size(20.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Сохранение...")
                 } else {
                     Text("Сохранить")
                 }
@@ -215,8 +300,9 @@ fun ProfileContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedButton(
-                onClick = { /* TODO: Отменить редактирование */ },
-                modifier = Modifier.fillMaxWidth()
+                onClick = onCancelClick,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
             ) {
                 Text("Отменить")
             }
