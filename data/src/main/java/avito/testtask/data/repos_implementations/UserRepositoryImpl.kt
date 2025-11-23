@@ -1,6 +1,5 @@
 package avito.testtask.data.repos_implementations
 
-import android.net.Uri
 import androidx.core.net.toUri
 import avito.testtask.domain.models.OperationResult
 import avito.testtask.domain.models.User

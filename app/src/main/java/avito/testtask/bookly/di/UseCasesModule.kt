@@ -7,6 +7,7 @@ import avito.testtask.domain.usecases.auth.RegisterUseCase
 import avito.testtask.domain.usecases.books.DeleteBookUseCase
 import avito.testtask.domain.usecases.books.DownloadBookUseCase
 import avito.testtask.domain.usecases.books.GetAllBooksUseCase
+import avito.testtask.domain.usecases.books.GetBookByIdUseCase
 import avito.testtask.domain.usecases.books.GetBookContentUsecase
 import avito.testtask.domain.usecases.books.SearchBookUseCase
 import avito.testtask.domain.usecases.books.UploadBookUseCase
@@ -29,6 +30,8 @@ val useCasesModule = module {
     factory { DeleteBookUseCase(get()) }
     factory { SearchBookUseCase(get()) }
     factory { GetBookContentUsecase(get()) }
+    factory { GetBookByIdUseCase(get()) }
+
 
     factory { GetReadingProgressUseCase(get()) }
     factory { SaveReadingProggressUseCase(get()) }

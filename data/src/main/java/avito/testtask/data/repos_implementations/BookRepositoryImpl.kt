@@ -2,6 +2,7 @@ package avito.testtask.data.repos_implementations
 
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.compose.animation.EnterTransition.Companion.None
 import androidx.core.content.ContextCompat
 import avito.testtask.data.models.toBook
@@ -20,6 +21,7 @@ import java.io.File
 import java.util.UUID
 import kotlin.collections.map
 import androidx.core.net.toUri
+import avito.testtask.data.security.SimpleSecretManager
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState
@@ -34,14 +36,23 @@ class BookRepositoryImpl(
     private val readingProgressDao: ReadingProgressDao,
     private val context: Context
 ) : BookReository {
+    private val secretManager = SimpleSecretManager(context)
 
-    private val bucketName = "bookly-bucket"
-    private val accessKey = "YCAJEzUZXA-othjXJFOunGoB2"
-    private val secretKey = "YCM3aSjGhvonSIBF5oDRBHMPeE-dGIf9PJX9rKMa" // ОЧЕНЬ ПЛОХО, ИСПРАВИТЬ
+    init {
+        if (!secretManager.hasSecrets()) {
+            secretManager.saveSecrets(
+                "YCAJEzUZXA-othjXJFOunGoB2",
+                "YCM3aSjGhvonSIBF5oDRBHMPeE-dGIf9PJX9rKMa",
+                "bookly-bucket"
+            )
+        }
+    }
 
     private val currentUserId: String get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     private val s3Client: AmazonS3Client by lazy {
-        val credentials = BasicAWSCredentials(accessKey, secretKey)
+        val credentials = BasicAWSCredentials(secretManager.getAccessKey()!!,
+            secretManager.getSecretKey()!!)
         AmazonS3Client(credentials).apply {
             setEndpoint("https://storage.yandexcloud.net")
         }
@@ -51,7 +62,7 @@ class BookRepositoryImpl(
         TransferUtility.builder()
             .context(context)
             .s3Client(s3Client)
-            .defaultBucket(bucketName)
+            .defaultBucket(secretManager.getBucketName()!!)
             .build()
     }
 
@@ -62,6 +73,20 @@ class BookRepositoryImpl(
             OperationResult.Success(books)
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Failed to load books")
+        }
+    }
+
+    override suspend fun loadBookById(bookId: String): OperationResult<Book> {
+        return try {
+            val localBook = bookDao.getBookById(bookId)
+            val book = localBook?.toBook()
+            if (book != null){
+                OperationResult.Success(book)
+            }else{
+                OperationResult.Error( "Failed to load book")
+            }
+        } catch (e: Exception) {
+            OperationResult.Error(e.message ?: "Failed to load book")
         }
     }
 
@@ -126,11 +151,13 @@ class BookRepositoryImpl(
         return try {
             val userId = currentUserId
             val bookId = UUID.randomUUID().toString()
-            val fileExtension = context.contentResolver.getType(fileUri.toUri())?.split("/")?.last() ?: "txt"
+            val fileExtension = context.contentResolver.getType(fileUri.toUri())?.split("/")?.last()
+            Log.i("FORMAT", fileExtension?: "none")
+
             val bookFormat = when (fileExtension) {
                 "pdf" -> BookFormat.PDF
                 "epub" -> BookFormat.EPUB
-                "txt" -> BookFormat.TXT
+                "plain" -> BookFormat.TXT
                 else -> None
             }
             if (bookFormat == None){
@@ -175,7 +202,7 @@ class BookRepositoryImpl(
                 tempFile.delete()
 
                 if (uploadSuccess) {
-                    val fileUrl = "https://${bucketName}.storage.yandexcloud.net/$remotePath"
+                    val fileUrl = "https://${secretManager.getBucketName()!!}.storage.yandexcloud.net/$remotePath"
 
                     val book = Book(
                         id = bookId,

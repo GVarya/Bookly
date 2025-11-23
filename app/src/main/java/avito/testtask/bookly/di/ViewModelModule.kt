@@ -10,6 +10,6 @@ import org.koin.dsl.module
 val viewModelModule = module {
     viewModel { AuthViewModel(get(), get(), get(), get()) }
     viewModel { BooksViewModel(get(), get(), get(), get(), get()) }
-    viewModel { ReadingViewModel(get(), get(), get()) }
+    viewModel { ReadingViewModel(get(), get(), get(), get()) }
     viewModel { ProfileViewModel(get(), get(), get()) }
 }

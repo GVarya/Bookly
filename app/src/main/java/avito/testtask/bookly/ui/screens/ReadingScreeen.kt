@@ -1,5 +1,6 @@
 package avito.testtask.bookly.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import avito.testtask.domain.models.OperationResult
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +44,7 @@ fun ReadingScreeen(
         currentBook?.let { book ->
             if (book.id == bookId) return@LaunchedEffect
         }
-        // TODO: Загрузить книгу по ID и передать в ViewModel
+        readingViewModel.loadBookById(bookId)
     }
 
     Scaffold(
@@ -130,7 +132,9 @@ fun ReadingScreeen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(onClick = {
-                                currentBook?.let { readingViewModel.loadBookContent(it) }
+                                currentBook?.let {
+                                    readingViewModel.loadBookContent(it)
+                                    }
                             }) {
                                 Text("Повторить")
                             }

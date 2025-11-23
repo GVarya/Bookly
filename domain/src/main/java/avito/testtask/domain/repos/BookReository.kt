@@ -7,6 +7,7 @@ import avito.testtask.domain.models.ReadingProgress
 
 interface BookReository {
     suspend fun loadAllBooks(): OperationResult<List<Book>>
+    suspend fun loadBookById(bookId: String): OperationResult<Book>
     suspend fun downloadBook(book: Book): OperationResult<Book>
     suspend fun uploadBook(fileUri: String, title: String, author: String): OperationResult<Book>
     suspend fun deleteBook(book: Book): OperationResult<Unit>
