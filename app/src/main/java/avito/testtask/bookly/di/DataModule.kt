@@ -43,8 +43,8 @@ val dataModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<BookReository> {
         BookRepositoryImpl(
-            firestore = get(),
-            storage = get(),
+//            firestore = get(),
+//            storage = get(),
             bookDao = get(),
             readingProgressDao = get(),
 //            context = get()

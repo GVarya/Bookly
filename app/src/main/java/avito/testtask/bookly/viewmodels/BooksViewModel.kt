@@ -34,6 +34,9 @@ class BooksViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _uploadProgress = MutableStateFlow(0f)
+    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
+
     init {
         loadBooks()
     }
@@ -53,7 +56,7 @@ class BooksViewModel(
                 is OperationResult.Success -> {
                     loadBooks()
                 }
-                is OperationResult.Error -> { // В ui обрабатывается
+                is OperationResult.Error -> {
                 }
                 else -> {}
             }
@@ -68,7 +71,7 @@ class BooksViewModel(
                 is OperationResult.Success -> {
                     loadBooks()
                 }
-                is OperationResult.Error -> { // В ui обрабатывается
+                is OperationResult.Error -> {
                 }
                 else -> {}
             }
@@ -93,11 +96,12 @@ class BooksViewModel(
         viewModelScope.launch {
             _uploadState.value = UploadState.Loading(0f)
             _isLoading.value = true
+            _uploadProgress.value = 0f
 
-            for (progress in 0..100 step 10) {
-                _uploadState.value = UploadState.Loading(progress / 100f)
-                kotlinx.coroutines.delay(200)
+            val progressCallback: (Float) -> Unit = { progress ->
+                _uploadProgress.value = progress
             }
+
 
             when (val result = uploadBookUseCase.execute(fileUri, title, author)) {
                 is OperationResult.Success -> {
@@ -107,7 +111,9 @@ class BooksViewModel(
                 is OperationResult.Error -> {
                     _uploadState.value = UploadState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _uploadState.value = UploadState.Error("Неизвестная ошибка")
+                }
             }
             _isLoading.value = false
         }

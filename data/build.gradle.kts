@@ -61,5 +61,8 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
 
+    implementation(libs.aws.android.sdk.s3)
+    implementation(libs.aws.android.sdk.core)
+
     implementation(project(":domain"))
 }

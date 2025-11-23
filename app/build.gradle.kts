@@ -79,6 +79,9 @@ dependencies {
 
     implementation(libs.coil.compose)
 
+    implementation(libs.aws.android.sdk.s3)
+    implementation(libs.aws.android.sdk.core)
+
     implementation(project(":data"))
     implementation(project(":domain"))
 }

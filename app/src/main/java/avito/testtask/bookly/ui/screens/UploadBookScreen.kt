@@ -1,5 +1,8 @@
 package avito.testtask.bookly.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.LinearProgressIndicator
 import avito.testtask.bookly.viewmodels.UploadState
 
@@ -10,24 +13,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import avito.testtask.bookly.viewmodels.BooksViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadBookScreen(
-    navController: NavController,
     booksViewModel: BooksViewModel = koinViewModel()
 ) {
     var selectedFileName by remember { mutableStateOf<String?>(null) }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var title by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     val uploadState by booksViewModel.uploadState.collectAsState()
     val isLoading by booksViewModel.isLoading.collectAsState()
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                selectedFileUri = uri
+                val fileName = getFileNameFromUri(context, uri)
+                selectedFileName = fileName ?: "Неизвестный файл"
+            }
+        }
+    )
+
 
     Scaffold(
         topBar = {
@@ -42,8 +57,7 @@ fun UploadBookScreen(
         ) {
             OutlinedButton(
                 onClick = {
-                    // TODO: Открыть системный выбор файла
-                    selectedFileName = "example_book.pdf"
+                    filePickerLauncher.launch("*/*")
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -116,6 +130,10 @@ fun UploadBookScreen(
                     LaunchedEffect(Unit) {
                         kotlinx.coroutines.delay(2000)
                         booksViewModel.resetUploadState()
+                        selectedFileName = null
+                        selectedFileUri = null
+                        title = ""
+                        author = ""
                     }
                 }
 
@@ -143,12 +161,14 @@ fun UploadBookScreen(
 
             Button(
                 onClick = {
-                    if (selectedFileName != null && title.isNotEmpty() && author.isNotEmpty()) {
-                        booksViewModel.uploadBook(
-                            fileUri = "file_uri_placeholder", // TODO: Заменить на реальный URI
-                            title = title,
-                            author = author
-                        )
+                    selectedFileUri?.let { uri ->
+                        if (selectedFileName != null && title.isNotEmpty() && author.isNotEmpty()) {
+                            booksViewModel.uploadBook(
+                                fileUri = uri.toString(),
+                                title = title,
+                                author = author
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -166,5 +186,17 @@ fun UploadBookScreen(
                 }
             }
         }
+    }
+}
+
+private fun getFileNameFromUri(context: android.content.Context, uri: Uri): String? {
+    return try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            cursor.moveToFirst()
+            cursor.getString(nameIndex)
+        }
+    } catch (e: Exception) {
+        uri.path?.substringAfterLast('/')
     }
 }

@@ -1,10 +1,9 @@
 package avito.testtask.data.repos_implementations
 
 import android.content.Context
-import android.net.Uri
 import android.os.Environment
+import androidx.compose.animation.EnterTransition.Companion.None
 import androidx.core.content.ContextCompat
-import avito.testtask.data.models.RemoteBook
 import avito.testtask.data.models.toBook
 import avito.testtask.data.models.toLocalBook
 import avito.testtask.data.models.toLocalReadingProgress
@@ -17,45 +16,57 @@ import avito.testtask.domain.models.OperationResult
 import avito.testtask.domain.models.ReadingProgress
 import avito.testtask.domain.repos.BookReository
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.util.UUID
 import kotlin.collections.map
 import androidx.core.net.toUri
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility
+import com.amazonaws.services.s3.AmazonS3Client
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.InputStream
+import kotlin.coroutines.resume
 
 class BookRepositoryImpl(
-    private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage,
     private val bookDao: BookDao,
     private val readingProgressDao: ReadingProgressDao,
     private val context: Context
 ) : BookReository {
 
+    private val bucketName = "bookly-bucket"
+    private val accessKey = "YCAJEzUZXA-othjXJFOunGoB2"
+    private val secretKey = "YCM3aSjGhvonSIBF5oDRBHMPeE-dGIf9PJX9rKMa" // ОЧЕНЬ ПЛОХО, ИСПРАВИТЬ
+
     private val currentUserId: String get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    private val s3Client: AmazonS3Client by lazy {
+        val credentials = BasicAWSCredentials(accessKey, secretKey)
+        AmazonS3Client(credentials).apply {
+            setEndpoint("https://storage.yandexcloud.net")
+        }
+    }
+
+    private val transferUtility: TransferUtility by lazy {
+        TransferUtility.builder()
+            .context(context)
+            .s3Client(s3Client)
+            .defaultBucket(bucketName)
+            .build()
+    }
 
     override suspend fun loadAllBooks(): OperationResult<List<Book>> {
         return try {
-            val firestoreBooks = firestore.collection("books")
-                .whereEqualTo("userId", currentUserId)
-                .get()
-                .await()
-                .toObjects(RemoteBook::class.java)
-
-            val localBooks = bookDao.getBooksByUser(currentUserId).associateBy { it.id }
-
-            val books = firestoreBooks.map { remoteBoor ->
-                val localBook = localBooks[remoteBoor.id]
-                remoteBoor.toBook(localBook?.localPath)
-            }
-
+            val localBooks = bookDao.getBooksByUser(currentUserId)
+            val books = localBooks.map { it.toBook() }
             OperationResult.Success(books)
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Failed to load books")
-        }    }
+        }
+    }
 
     override suspend fun downloadBook(book: Book): OperationResult<Book> {
+
         return try {
             val downloadsDir = ContextCompat.getExternalFilesDirs(context, Environment.DIRECTORY_DOWNLOADS).first()
             val fileExtension = when (book.bookFormat) {
@@ -65,13 +76,43 @@ class BookRepositoryImpl(
             }
             val localFile = File(downloadsDir, "${book.id}.$fileExtension")
 
-            val storageRef = storage.getReferenceFromUrl(book.fileUrl)
-            storageRef.getFile(localFile).await()
+            val remotePath = "books/$currentUserId/${book.id}.$fileExtension"
 
-            val localBook = book.toLocalBook().copy(localPath = localFile.absolutePath)
-            bookDao.insertBook(localBook)
+            val downloadSuccess = suspendCancellableCoroutine<Boolean> { continuation ->
+                val downloadObserver = transferUtility.download(remotePath, localFile)
 
-            OperationResult.Success(book.copy(localUrl = localFile.absolutePath))
+                downloadObserver.setTransferListener(object : TransferListener {
+                    override fun onStateChanged(id: Int, state: TransferState) {
+                        when (state) {
+                            TransferState.COMPLETED -> {
+                                continuation.resume(true)
+                            }
+                            TransferState.FAILED -> {
+                                continuation.resume(false)
+                            }
+                            else -> {
+                            }
+                        }
+                    }
+
+                    override fun onProgressChanged(id: Int, bytesCurrent: Long, bytesTotal: Long) {
+                    }
+
+                    override fun onError(id: Int, ex: Exception) {
+                        continuation.resume(false) { cause, _, _ -> onCancellation(cause) }
+                    }
+
+                    private fun onCancellation(cause: Throwable) {}
+                })
+            }
+
+            if (downloadSuccess) {
+                val localBook = book.toLocalBook().copy(localPath = localFile.absolutePath)
+                bookDao.insertBook(localBook)
+                OperationResult.Success(book.copy(localUrl = localFile.absolutePath))
+            } else {
+                OperationResult.Error("Download failed")
+            }
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Download failed")
         }
@@ -89,40 +130,87 @@ class BookRepositoryImpl(
             val bookFormat = when (fileExtension) {
                 "pdf" -> BookFormat.PDF
                 "epub" -> BookFormat.EPUB
-                else -> BookFormat.TXT
+                "txt" -> BookFormat.TXT
+                else -> None
+            }
+            if (bookFormat == None){
+                throw Exception("Wrong file format")
             }
 
-            val storageRef = storage.reference.child("books/$userId/$bookId.$fileExtension")
-            val uploadTask = storageRef.putFile(fileUri.toUri()).await()
-            val downloadUrl = storageRef.downloadUrl.await()
+            val remotePath = "books/$userId/$bookId.$fileExtension"
+            val inputStream: InputStream? = context.contentResolver.openInputStream(fileUri.toUri())
 
-            val book = RemoteBook(
-                id = bookId,
-                title = title,
-                author = author,
-                fileUrl = downloadUrl.toString(),
-                userId = userId,
-                bookFormat = bookFormat.name
-            )
+            if (inputStream != null) {
+                val tempFile = File.createTempFile("upload_", ".$fileExtension", context.cacheDir)
+                tempFile.outputStream().use { output ->
+                    inputStream.copyTo(output)
+                }
 
-            firestore.collection("books")
-                .document(bookId)
-                .set(book)
-                .await()
+                val uploadSuccess = suspendCancellableCoroutine<Boolean> { continuation ->
+                    val uploadObserver = transferUtility.upload(remotePath, tempFile)
 
-            OperationResult.Success(book.toBook())
+                    uploadObserver.setTransferListener(object : TransferListener {
+                        override fun onStateChanged(id: Int, state: TransferState) {
+                            when (state) {
+                                TransferState.COMPLETED -> {
+                                    continuation.resume(true)
+                                }
+                                TransferState.FAILED -> {
+                                    continuation.resume(false)
+                                }
+                                else -> {
+                                }
+                            }
+                        }
+
+                        override fun onProgressChanged(id: Int, bytesCurrent: Long, bytesTotal: Long) {
+                        }
+
+                        override fun onError(id: Int, ex: Exception) {
+                            continuation.resume(false)
+                        }
+                    })
+                }
+
+                tempFile.delete()
+
+                if (uploadSuccess) {
+                    val fileUrl = "https://${bucketName}.storage.yandexcloud.net/$remotePath"
+
+                    val book = Book(
+                        id = bookId,
+                        title = title,
+                        author = author,
+                        fileUrl = fileUrl,
+                        userId = userId,
+                        bookFormat = bookFormat as BookFormat,
+                        localUrl = null,
+                        posterImageUrl = null
+                    )
+
+                    val localBook = book.toLocalBook()
+                    bookDao.insertBook(localBook)
+
+                    OperationResult.Success(book)
+                } else {
+                    OperationResult.Error("Upload failed")
+                }
+            } else {
+                OperationResult.Error("Failed to open file stream")
+            }
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Upload failed")
         }
     }
 
     override suspend fun deleteBook(book: Book): OperationResult<Unit> {
-        return try {
 
+        return try {
             book.localUrl?.let { localPath ->
                 File(localPath).delete()
-                bookDao.deleteBook(book.id)
             }
+
+            bookDao.deleteBook(book.id)
 
             OperationResult.Success(Unit)
         } catch (e: Exception) {
@@ -131,26 +219,14 @@ class BookRepositoryImpl(
     }
 
     override suspend fun searchBook(query: String): OperationResult<List<Book>> {
+
         return try {
             val localBooks = bookDao.searchBooks(query).map { it.toBook() }
-
-            if (localBooks.isEmpty()) {
-                val firestoreBooks = firestore.collection("books")
-                    .whereEqualTo("userId", currentUserId)
-                    .whereGreaterThanOrEqualTo("title", query)
-                    .whereLessThanOrEqualTo("title", query + "\uf8ff")
-                    .get()
-                    .await()
-                    .toObjects(RemoteBook::class.java)
-                    .map { it.toBook() }
-
-                OperationResult.Success(firestoreBooks)
-            } else {
-                OperationResult.Success(localBooks)
-            }
+            OperationResult.Success(localBooks)
         } catch (e: Exception) {
             OperationResult.Error(e.message ?: "Search failed")
         }
+
     }
 
     override suspend fun getBookContent(book: Book): OperationResult<String> {
