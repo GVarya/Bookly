@@ -47,7 +47,6 @@ fun BookReaderApp() {
     val authViewModel: AuthViewModel = koinViewModel()
     val authState by authViewModel.authState.collectAsState()
 
-    // Навигация на основе состояния аутентификации
     LaunchedEffect(authState) {
         when (authState) {
             is avito.testtask.domain.models.AuthState.Authenticated -> {

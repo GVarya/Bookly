@@ -68,7 +68,7 @@ fun ProfileScreen(
                         onLogoutClick = {
                             profileViewModel.clearState()
                             authViewModel.logout()
-                            // TODO: Вызвать logout и навигацию на логин
+                            navController.navigate("auth")
                         }
                     )
                 }

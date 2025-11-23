@@ -12,6 +12,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val dataModule = module {
@@ -24,7 +25,8 @@ val dataModule = module {
 //    single { provideBookDao(get()) }
 //    single { provideReadingProgressDao(get()) }
 //
-    single { createBookDatabase(get()) }
+//    single { createBookDatabase(get()) }
+    single { createBookDatabase(androidContext()) }
     single { get<BookDatabase>().bookDao() }
     single { get<BookDatabase>().readingProgressDao() }
 
@@ -45,7 +47,9 @@ val dataModule = module {
             storage = get(),
             bookDao = get(),
             readingProgressDao = get(),
-            context = get()
+//            context = get()
+            context = androidContext()
+
         )
     }
     single<UserRepository> {

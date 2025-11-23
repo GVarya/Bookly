@@ -22,7 +22,7 @@ class BooklyApp : Application() {
                 appModule,
                 dataModule,
                 useCasesModule,
-                viewModelModule
+                viewModelModule,
             )
         }
     }
